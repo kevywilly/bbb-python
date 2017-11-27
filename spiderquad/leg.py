@@ -23,8 +23,6 @@ class Leg:
         for joint in self.joints:
             joint.seek_target(False)
         
-        delay(5)
-        
     def goto_targets(self):
         for joint in self.joints:
             joint.goto_target()
