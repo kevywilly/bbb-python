@@ -14,7 +14,7 @@ MAX_PULSE_A = 660
 MIN_PULSE_B = 150
 MAX_PULSE_B = 650
 
-DEFAULT_SPEED = 10
+DEFAULT_SPEED = 40
 
 COXA_MASK = np.array(((1,1,1),(-1,1,1),(1,1,1),(-1,1,1)))
 
@@ -38,11 +38,11 @@ lfCoxa = Joint(pwm, 1,cLen, direction=-1, minPulse=MIN_PULSE_B, maxPulse=MAX_PUL
 lfFemur = Joint(pwm, 5,fLen, direction=-1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A)
 lfTibia = Joint(pwm, 9,tLen, direction=-1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A)
 
-lhCoxa = Joint(pwm, 2,cLen, direction=1, minPulse=MIN_PULSE_B, maxPulse=MAX_PULSE_B)
+lhCoxa = Joint(pwm, 2,cLen, direction=-1, minPulse=MIN_PULSE_B, maxPulse=MAX_PULSE_B)
 lhFemur = Joint(pwm, 6,fLen, direction=1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A)
 lhTibia = Joint(pwm, 10,tLen, direction=1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A)
 
-rhCoxa = Joint(pwm, 3,cLen, direction=-1, minPulse=MIN_PULSE_B, maxPulse=MAX_PULSE_B)
+rhCoxa = Joint(pwm, 3,cLen, direction=1, minPulse=MIN_PULSE_B, maxPulse=MAX_PULSE_B)
 rhFemur = Joint(pwm, 7,fLen, direction=-1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A)
 rhTibia = Joint(pwm, 11,tLen, direction=-1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A)
 
@@ -56,15 +56,10 @@ rhLeg = Leg(rhCoxa, rhFemur, rhTibia)
 # Put legs into an array
 legs = [rfLeg,lfLeg,lhLeg,rhLeg]
 
-GAITLEGSTEP = [6,16,11,1]
-NUMLIFTE_POS = 5  # number of steps that the leg is in the air
-TLDIVFACTOR = 15 # number of steps that the leg is on the ground
 
 
 ############################ Methods ######################
 
-
-    
 # Are targets reached?
 def targets_reached():
     for leg in legs:
@@ -78,8 +73,7 @@ def seek_targets():
     while(not targets_reached()):
         for leg in legs:
             leg.seek_targets()
-    
-    delay(5)
+        delay(25)
   
  
 def go_home():
@@ -110,40 +104,22 @@ def up_down_demo():
     set_position(pos, go=True)
     delay(200)
     
-def twist_demo():
+def twist_demo(distance):
     pos = np.zeros((4,3))
     
-    mask = np.array(((1,1,1),(-1,1,1),(1,1,1),(-1,1,1)))
+    mask = np.array(((1,1,1),(-1,1,1),(-1,1,1),(1,1,1)))
     
-    offsets = (80,-80, 0)
-   
-    for x in offsets:
-        set_position((pos + (x,0,0)) * COXA_MASK, go=True)
+    dir = [-1,1]
+    for i in dir:
+        set_position((pos + (distance*i,0,0))*mask, go=True, speed=10)
         delay(500)
+    
+    set_position(pos, go=True)
 
-def walk_demo():
+def walk_demo(steps = 2, lift=30, turn = 50, speed = 40):
+    for i in range(0,steps):
+        gait1()
     
-    home = np.zeros((4,3))
-     
-    #                       RF          LF        LR         RR
-    step1 = home  +  ((-20, 0, 0), (0, 0,-20),   (20, 0, 0),    ( 0, 0, 20)) # rr step
-    step2 = home  +  ((-25, 0, 0), (0, 0,-30),   (25, 0, 0),    (-40,0,-20)) # rr step
-    step3 = home  +  ((-30, 0, 0), (0, 0, 0),    (30, 0, 0),     (-40,0,0)) # rr down
-    step4 = home  +  ((20,0,-20), (0, 0, 0),    (20, 0, -20), (-20,0,0)) # RF Step
-    step5 = home  +  ((20,0,0), (0, 0, 0),    (-20, 0, 0), (0,0,0)) # RF Step
-    step6 = home  +  ((0, 0, 0),(0, 0, 0),    (0, 0, 0), (0,0,0)) # RF Down
-    
-    
-    
-    steps = [step1,step2,step3,step4,step5]
-    
-    
-
-    for step in steps:
-        set_position(step, go=True)
-    
-    for step in steps:
-        set_position(mirror(step), go = True)
     
     
 def mirror(ar):
@@ -151,21 +127,22 @@ def mirror(ar):
 
 
 
-def walk2():
+def gait1(lift=30, turn=50, speed=40):
     
-    mask = np.array(((1,1,1),(1,1,1),(-1,1,1),(-1,1,1)))
+    mask = np.array(((1,1,1),(1,1,1),(1,1,1),(1,1,1)))
+    
     pos = np.zeros((4,3))
+    
     pos[2][2]=5
     pos[1][2]=5
     pos[0][2]=-5
     pos[3][2]=-5
+    
     in_air = 5.0
     num_steps = 20
     
     on_ground = num_steps - in_air
     steps = [16,6,1,11]
-    lift = 25
-    turn = 100
     z = 2
     x = 0
 
@@ -199,63 +176,19 @@ def walk2():
                     else:
                         pos[index][z] += lift/5.0
                         
-        set_position(pos*mask, go = True)
-        delay(10)
+        set_position(pos*mask, speed = speed, go = True)
                         
 
     
 def main():
     
-   
     go_home()
     
-    walk2()
-    walk2()
+    #twist_demo(60)
+    #up_down_demo()
+    walk_demo(steps=5, lift=30, turn=80)
     
-    #step1 = home  +  ((0, 0, 0), (0, 0, 0), (0, 0, 0), (0,0,15))
-    #set_position(step1, go=True)
-    
-    #pos = np.zeros((4,3))
-    
-    #for i in range(1,20):
-    
-    #    gait_calculate(i)
-   
   
 
 if __name__ == "__main__": main()
 
-
-
-'''
-def gait_calculate(step):
-    leg_lift_height = 60
-    walk_length = 100
-
-    pos = np.zeros((4,3))
-    Z = 2
-    X = 0
-    mask = np.array(((1,1,1),(1,1,1),(-1,1,1),(-1,1,1)))
-    for index, leg in enumerate(legs):
-        if step == GAITLEGSTEP[index]:
-            pos[index][Z] = -leg_lift_height/2
-        elif step == GAITLEGSTEP[index]+1:
-            pos[index][X] = 0
-            pos[index][Z] = -leg_lift_height
-        elif step == GAITLEGSTEP[index]+2:
-            pos[index][X] = walk_length/2
-            pos[index][Z] = -leg_lift_height/2
-        elif step == GAITLEGSTEP[index]+3:
-            pos[index][Z] = 0
-        else:
-            pos[index][X] = -walk_length/TLDIVFACTOR
-       
-    adj_pos = pos*mask     
-    print "###### step {} ######".format(step)
-    print adj_pos
-    print "#####################"
-        
-   
-    set_position(adj_pos, go=True)
-    delay(10)
-'''
