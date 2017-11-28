@@ -129,8 +129,6 @@ def mirror(ar):
 
 def gait1(lift=30, turn=50, speed=40):
     
-    mask = np.array(((1,1,1),(1,1,1),(1,1,1),(1,1,1)))
-    
     pos = np.zeros((4,3))
     
     pos[2][2]=5
@@ -176,7 +174,7 @@ def gait1(lift=30, turn=50, speed=40):
                     else:
                         pos[index][z] += lift/5.0
                         
-        set_position(pos*mask, speed = speed, go = True)
+        set_position(pos, speed = speed, go = True)
                         
 
     
@@ -186,7 +184,7 @@ def main():
     
     #twist_demo(60)
     #up_down_demo()
-    walk_demo(steps=5, lift=30, turn=80)
+    walk_demo(steps=15, lift=30, turn=80)
     
   
 
