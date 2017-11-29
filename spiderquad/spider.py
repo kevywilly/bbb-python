@@ -24,9 +24,11 @@ MAX_PULSE_B = 650
 
 DEFAULT_SPEED = 40
 
+
 COXA_MASK = np.array(((1,1,1),(-1,1,1),(1,1,1),(-1,1,1)))
 
-HOME = np.zeros((4,3))
+P0 = np.zeros((4,3))
+POFFSETS = np.array(((0,0,0),(0,0,0),(0,0,0),(0,0,0)))
 
 
 
@@ -80,7 +82,7 @@ def seek_targets():
     while(not targets_reached()):
         for leg in legs:
             leg.seek_targets()
-        delay(25)
+        delay(15)
   
  
 def go_home():
@@ -125,7 +127,8 @@ def twist_demo(distance):
 
 def walk_demo(steps = 2, lift=30, turn = 50, speed = 40):
     for i in range(0,steps):
-        gait1()
+        gait1(lift = lift, turn = turn, speed = speed)
+        delay(50)
     
     
     
@@ -136,15 +139,9 @@ def mirror(ar):
 
 def gait1(lift=30, turn=50, speed=40):
     
-    pos = np.zeros((4,3))
-    '''
-    pos[2][2]=5
-    pos[1][2]=5
-    pos[0][2]=-5
-    pos[3][2]=-5
-    '''
+    pos = P0+POFFSETS
     
-    in_air = 5
+    in_air = 5.0
     num_steps = 20
     on_ground = 15
     steps = [16,6,1,11]
@@ -248,6 +245,7 @@ def main():
     
     go_home()
     
+    #set_position(pos, speed = 100, go = True)
     #twist_demo(60)
     #up_down_demo()
     #walk_demo(steps=1, lift=30, turn=80)
