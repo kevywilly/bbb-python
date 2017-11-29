@@ -83,7 +83,8 @@ class Joint:
     	a = self.safe_angle(angle)
     	pulse = int(round(self.angle_to_pulse(a)))
     	#print "moving joint {} to angle {} using pulse {}".format(self.id, a, pulse)
-    	self.pwm.set_pwm(self.id, 0, pulse)
+        if self.pwm != None:
+    	   self.pwm.set_pwm(self.id, 0, pulse)
     	self.current = a
 	
     # go directly to target angle

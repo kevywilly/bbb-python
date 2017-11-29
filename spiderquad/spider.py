@@ -1,12 +1,20 @@
 #!/usr/bin/python
 
+
 from utils import *
 from leg import Leg
 from joint import Joint
 from time import sleep
 import numpy as np
+import imp
+import math
+try:
+    imp.find_module('Adafruit_PCA9685')
+    pwm = Adafruit_PCA9685.PCA9685()
+    pwm.set_pwm_freq(60)
+except ImportError:
+    pwm = None
 
-import Adafruit_PCA9685
 
 MIN_PULSE_A = 110
 MAX_PULSE_A = 660
@@ -20,8 +28,7 @@ COXA_MASK = np.array(((1,1,1),(-1,1,1),(1,1,1),(-1,1,1)))
 
 HOME = np.zeros((4,3))
 
-pwm = Adafruit_PCA9685.PCA9685()
-pwm.set_pwm_freq(60)
+
 
 ####################################### Define all Joints ###########################################
 # Joint Lengths
@@ -130,21 +137,23 @@ def mirror(ar):
 def gait1(lift=30, turn=50, speed=40):
     
     pos = np.zeros((4,3))
-    
+    '''
     pos[2][2]=5
     pos[1][2]=5
     pos[0][2]=-5
     pos[3][2]=-5
+    '''
     
-    in_air = 5.0
+    in_air = 5
     num_steps = 20
-    
-    on_ground = num_steps - in_air
+    on_ground = 15
     steps = [16,6,1,11]
+
     z = 2
     x = 0
 
-    for step in range(1,num_steps):
+    for step in range(1,num_steps+1):
+        print "====== step {}======\n".format(step) 
         if(step < 6):
             active_leg = 2
         elif(step < 11):
@@ -156,36 +165,93 @@ def gait1(lift=30, turn=50, speed=40):
             
         for index, leg in enumerate(legs):
             
-            if step == steps[index]:        #1
-                pos[index][z] = lift    
-            elif step == steps[index]+1:    #2
+            if step == steps[index]:        #1 16
+                pos[index][z] = -lift/2.0    
+            elif step == steps[index]+1:    #2 17
                 pos[index][x] = 0
                 pos[index][z] = -lift
-            elif step == steps[index]+2:     #3
-                pos[index][x] = turn/2
-                pos[index][z] = -lift/3
-            elif step == steps[index]+3:     #4
+            elif step == steps[index]+2:     #3 18
+                pos[index][x] = turn/2.0
+                pos[index][z] = -lift/2.0
+            elif step == steps[index]+3:     #4 19
                 pos[index][z] = 0
             else:
-                pos[index][x] -= turn/on_ground
+                pos[index][x] -= turn/15.0
                 if abs(index - active_leg) == 2:
                     if (step -1) % in_air == 0:
                         pos[index][z] = -lift
                     else:
                         pos[index][z] += lift/5.0
                         
+                
+               
         set_position(pos, speed = speed, go = True)
+        print "\n"
                         
 
-    
+def trot(steps=60, lift=30, stride=50, speed = 20, order = [2,1,3,0]):
+    print "Beginning Trot steps: {}, lift: {}, stride: {}, speed: {}, order: {}\n".format(steps,lift,stride,speed,order)
+    print "=====================================================================================\n"
+    in_air = steps/4.0
+    on_ground = steps * 3.0/4
+
+    current_step = []
+    positions = np.zeros((4,3))
+
+    for i in range(0,4):
+        if i == 0:
+            current_step.append(0)
+        else:
+            current_step.append(steps - i*in_air)
+        
+    print current_step
+
+    stepping_leg = order[0]
+    for i in range(0,steps): 
+        #print current_step       
+        for index, leg in enumerate(order):
+            # calculate z, x for this leg
+            step = current_step[index]
+            
+            if step < in_air:
+                stepping_leg = leg
+                opposite_leg = opposite(leg)
+            elif stepping_leg == leg:
+                stepping_leg = -1
+                opposite_leg = -1
+
+            # set x
+            if step < in_air:
+                positions[leg][0] = round(math.sin(math.radians((step)*90.0/in_air))*stride,2) # X gradually step forward
+                positions[leg][2] = -round(math.sin(math.radians((step)*180.0/in_air))*lift,2) # Z gradually lift leg
+            else:
+                positions[leg][0] -= round(stride*1.0/on_ground,2) # X gradually push backward
+                if leg == opposite_leg:
+                    #if(positions[leg][2] == 0):
+                    #    positions[leg][2] = -lift
+                    #else:
+                        #positions[leg][2] -= lift/on_ground
+                    positions[leg][2] = -abs(round(math.sin(math.radians((step)*90.0/in_air))*lift,2)) # drop down and lift
+                else:
+                    positions[leg][2] = 0
+
+            # increment current step for this leg
+            if current_step[leg] < steps:
+                current_step[leg] +=1
+            else:
+                current_step[leg] = 1
+
+        #set_position(positions, speed=speed, go = True)
+        print positions[1]
+
 def main():
     
     go_home()
     
     #twist_demo(60)
     #up_down_demo()
-    walk_demo(steps=15, lift=30, turn=80)
-    
+    #walk_demo(steps=1, lift=30, turn=80)
+    trot(steps=50, speed=100, lift=40, stride=80)
   
 
 if __name__ == "__main__": main()
