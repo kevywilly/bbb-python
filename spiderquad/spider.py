@@ -31,6 +31,16 @@ COXA_MASK = np.array(((1,1,1),(-1,1,1),(1,1,1),(-1,1,1)))
 P0 = np.zeros((4,3))
 POFFSETS = np.array(((0,0,-5),(0,0,5),(0,0,5),(0,0,-5)))
 
+Headings = enum(NORTH=1,SOUTH=2,EAST=3,WEST=4)
+Gaits = enum(WALK="walk",TROT="trot")
+
+
+HeadingsMap = { 
+    1 : { "walk": [2,1,3,0], "trot": [2,0,3,1], "mask": (1,1,1)},  #North
+    2 : { "walk": [0,3,1,2], "trot": [0,2,1,3], "mask":  (-1,1,1)}, #South
+    3 : { "walk": [1,0,2,3], "trot": [1,3,2,0], "mask": ((-1,1,1),(1,1,1),(-1,1,1),(1,1,1))}, #East
+    4 : { "walk": [3,2,0,1], "trot": [3,1,0,2], "mask": ((1,1,1),(-1,1,1),(1,1,1),(-1,1,1))}, #West
+}
 
 
 ####################################### Define all Joints ###########################################
@@ -65,6 +75,7 @@ rhLeg = Leg(rhCoxa, rhFemur, rhTibia)
 
 # Put legs into an array
 legs = [rfLeg,lfLeg,lhLeg,rhLeg]
+
 
 
 
@@ -137,122 +148,73 @@ def mirror(ar):
     return np.array((ar[1],ar[0],ar[3],ar[2]))
 
 
+def gait2(lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NORTH):
+    
+    pos = P0+POFFSETS
+    
+    mask = HeadingsMap[heading]["mask"]
+    order = HeadingsMap[heading][gait]
 
-def gait1(lift=30, turn=50, speed=40):
-    
-    pos = np.zeros((4,3))
-    
-    pos[2][2]=5
-    pos[1][2]=5
-    pos[0][2]=-5
-    pos[3][2]=-5
-    
-    in_air = 5.0
     num_steps = 20
     
+    in_air = num_steps/4
+    
     on_ground = num_steps - in_air
-    steps = [16,6,1,11]
+    
+    steps = [0,0,0,0]
+    for i in range(0,4):
+        steps[order[i]] = 0+i*in_air
+        
+    print "steps: {}".format(steps)
+    
     z = 2
     x = 0
 
-    for step in range(1,num_steps):
-        if(step < 6):
-            active_leg = 2
-        elif(step < 11):
-            active_leg = 1
-        elif(step < 16):
-            active_leg = 3
-        else:
-            active_leg = 0
+    for step in range(0,num_steps):
+        active_leg = order[int(step/in_air)]
+        
             
         for index, leg in enumerate(legs):
             
             if step == steps[index]:        #1
-                pos[index][z] = lift    
+                pos[index][z] = lift  
             elif step == steps[index]+1:    #2
                 pos[index][x] = 0
                 pos[index][z] = -lift
             elif step == steps[index]+2:     #3
-                pos[index][x] = turn/2
-                pos[index][z] = -lift/3
+                pos[index][x] = stride/2
+                pos[index][z] = -lift/2
             elif step == steps[index]+3:     #4
                 pos[index][z] = 0
             else:
-                pos[index][x] -= turn/on_ground
+                pos[index][x] -= stride/on_ground
                 if abs(index - active_leg) == 2:
-                    if (step -1) % in_air == 0:
+                    if step % in_air == 0:
                         pos[index][z] = -lift
                     else:
-                        pos[index][z] += lift/5.0
-                        
-        set_position(pos, speed = speed, go = True)
-                        
-
-def trot(steps=60, lift=30, stride=50, speed = 20, order = [2,1,3,0]):
-    print "Beginning Trot steps: {}, lift: {}, stride: {}, speed: {}, order: {}\n".format(steps,lift,stride,speed,order)
-    print "=====================================================================================\n"
-    in_air = steps/4.0
-    on_ground = steps * 3.0/4
-
-    current_step = []
-    positions = np.zeros((4,3))
-
-    for i in range(0,4):
-        if i == 0:
-            current_step.append(0)
-        else:
-            current_step.append(steps - i*in_air)
-        
-    print current_step
-
-    stepping_leg = order[0]
-    opposite_leg = opposite(stepping_leg)
-    for i in range(0,steps): 
-        #print current_step       
-        for index, leg in enumerate(order):
-            # calculate z, x for this leg
-            step = current_step[index]
-            
-            if step < in_air:
-                stepping_leg = leg
-                opposite_leg = opposite(leg)
-            elif stepping_leg == leg:
-                stepping_leg = -1
-                opposite_leg = -1
-
-            # set x
-            if step < in_air/3:
-                positions[leg][2] = math.sin(math.radians((step)*180.0/in_air))*lift
-                positions[leg][0] -= stride*2.0/on_ground
-            elif step < in_air:
-                positions[leg][0] = math.sin(math.radians((step)*90.0/in_air))*stride # X gradually step forward
-                positions[leg][2] = -math.sin(math.radians((step)*180.0/in_air))*lift # Z gradually lift leg
-            else:
-                positions[leg][0] -= stride*2.0/on_ground # X gradually push backward
-                if leg == opposite_leg:
-                    positions[leg][2] = -abs(round(math.sin(math.radians((step)*90.0/in_air))*lift,2))/2 # drop down and lift
+                        pos[index][z] += lift/in_air
                 else:
-                    positions[leg][2] = 0
+                    pos[index][z] = 0
+                        
+        set_position(pos*mask, speed = speed, go = True)
+                        
 
-            # increment current step for this leg
-            if current_step[leg] < steps:
-                current_step[leg] +=1
-            else:
-                current_step[leg] = 1
-
-        set_position(positions, speed=speed, go = True)
-        #print positions[1]
 
 def main():
     
     go_home()
-    
+    delay(1000)
     #set_position(pos, speed = 100, go = True)
     #twist_demo(60)
     #up_down_demo()
     #walk_demo(steps=4, lift=30, turn=50)
     #trot(steps=40, speed=20, lift=40, stride=50)
-    gait1()
+
+    
+    gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.NORTH)
+    gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.EAST)
+    gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.SOUTH)
+    gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.WEST)
   
 
 if __name__ == "__main__": main()

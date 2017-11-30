@@ -1,5 +1,8 @@
 from time import sleep
 
+def enum(**named_values):
+	return type('Enum',(),named_values)
+	
 def delay(t):
     sleep(t/1000.0)
     
