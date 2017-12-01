@@ -2,14 +2,16 @@
 
 
 from utils import *
+from body import Body
 from leg import Leg
 from joint import Joint
 from time import sleep
 import numpy as np
 import imp
 import math
-import Adafruit_PCA9685
+
 try:
+    import Adafruit_PCA9685
     #imp.find_module('Adafruit_PCA9685')
     pwm = Adafruit_PCA9685.PCA9685()
     pwm.set_pwm_freq(60)
@@ -74,46 +76,12 @@ rhLeg = Leg(rhCoxa, rhFemur, rhTibia)
 
 
 # Put legs into an array
-legs = [rfLeg,lfLeg,lhLeg,rhLeg]
+body = Body(rfLeg,lfLeg,lhLeg,rhLeg)
 
 
 
 
 ############################ Methods ######################
-
-# Are targets reached?
-def targets_reached():
-    for leg in legs:
-        if not leg.targets_reached():
-            return False
-    
-    return True
-
-# Seek targets - move until targets reached
-def seek_targets():
-    while(not targets_reached()):
-        for leg in legs:
-            leg.seek_targets()
-        delay(15)
-  
- 
-def go_home():
-    for leg in legs:
-        leg.goto_targets()
-    
-def set_xyz(x,y,z, speed = DEFAULT_SPEED, go = False):
-    for leg in legs:
-        leg.solve_for_xyz_offset(x,y,z, speed)
-    if go:
-        seek_targets()
-        
-def set_position(pos, speed =DEFAULT_SPEED, go = False):
-    print "setting position:\n{}".format(pos)
-    for index, elem in enumerate(pos):
-        x,y,z = elem.tolist()
-        legs[index].solve_for_xyz_offset(x,y,z, speed)
-    if go:
-        seek_targets()
 
 def up_down_demo():
     pos = np.zeros((4,3))
@@ -147,6 +115,77 @@ def walk_demo(steps = 2, lift=30, turn = 50, speed = 40):
 def mirror(ar):
     return np.array((ar[1],ar[0],ar[3],ar[2]))
 
+def gait1(gait_period = 20, duty_factor = 0.25, lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NORTH):
+
+    X = 0
+    Z = 2
+
+    pos = P0+POFFSETS
+    mask = HeadingsMap[heading]["mask"]
+    order = HeadingsMap[heading][gait]
+
+    stepping = int(duty_factor*gait_period)
+    in_air = stepping - 1
+    on_ground = gait_period - stepping
+    
+    first_steps = [0,0,0,0]
+    
+    for i in range(0,4):
+        first_steps[order[i]] = i*stepping
+
+    current_step = first_steps[:]
+    print current_step
+
+    active_leg = None
+    for counter in range(0,gait_period):
+
+        # get the active leg
+        if active_leg != order[int(counter/stepping)]:
+            active_leg = order[int(counter/in_air)]
+            
+            #print "active_leg: {}\n".format(active_leg)
+
+        
+
+        # Calculate position
+
+        for leg in range(0,4):
+            step = current_step[leg]
+            if step == 0:
+                # shift
+                pos[leg][Z] = lift
+            elif step == 1:
+                pos[leg][Z] = -lift/(in_air/2)
+                pos[leg][X] = (stride/2)/(in_air)
+            elif step <= stepping/2:
+                pos[leg][Z] -= lift/(in_air/2)
+                pos[leg][X] += (stride/2)/(in_air)
+            elif step < stepping:
+                pos[leg][Z] += lift/(in_air/2)
+                pos[leg][X] += (stride/2)/(in_air)
+            elif step == stepping:
+                pos[leg][Z] = 0
+            else:
+                pos[leg][X] -= stride/on_ground
+                if leg == opposite(active_leg):
+                    if step % stepping == 0:
+                        pos[leg][Z] = -lift
+                    else:
+                        pos[leg][Z] += lift/in_air
+                else:
+                    pos[leg][Z] = 0
+
+
+
+        ## increment the current step
+        for i in range(0,4):
+            current_step[i] += 1
+            if current_step[i] >= gait_period:
+                current_step[i] = 0
+
+   
+        print(pos[2])
+    
 
 def gait2(lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NORTH):
     
@@ -174,7 +213,7 @@ def gait2(lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NO
         active_leg = order[int(step/in_air)]
         
             
-        for index, leg in enumerate(legs):
+        for index, leg in enumerate(body.legs):
             
             if step == steps[index]:        #1
                 pos[index][z] = lift  
@@ -196,13 +235,13 @@ def gait2(lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NO
                 else:
                     pos[index][z] = 0
                         
-        set_position(pos*mask, speed = speed, go = True)
-                        
+        #set_position(pos*mask, speed = speed, go = True)
+        print(pos[2])               
 
 
 def main():
     
-    go_home()
+    body.go_home()
     delay(1000)
     #set_position(pos, speed = 100, go = True)
     #twist_demo(60)
@@ -210,11 +249,12 @@ def main():
     #walk_demo(steps=4, lift=30, turn=50)
     #trot(steps=40, speed=20, lift=40, stride=50)
 
-    
-    gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.NORTH)
-    gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.EAST)
-    gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.SOUTH)
-    gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.WEST)
+    gait1(speed=20, stride=50, lift=30, gait = Gaits.WALK, heading = Headings.NORTH)
+    print "-----------------------------------"
+    gait2(speed=20, stride=50, lift=30, gait = Gaits.WALK, heading = Headings.NORTH)
+    #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.EAST)
+    #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.SOUTH)
+    #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.WEST)
   
 
 if __name__ == "__main__": main()
