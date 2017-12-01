@@ -139,6 +139,7 @@ def gait(gait_period = 20, duty_factor = 0.25, lift=30, stride=50, speed=40, gai
         # get the active leg
         if active_leg != order[int(counter/stepping)]:
             active_leg = order[int(counter/stepping)]
+            print(active_leg)
             
         # Calculate position
 
@@ -189,12 +190,10 @@ def gait1(gait_period = 20, duty_factor = 0.25, lift=30, stride=50, speed=40, ga
     order = HeadingsMap[heading][gait]
 
     stepping = int(duty_factor*gait_period)
-    in_air = stepping - 1
+    in_air = stepping - 2
     on_ground = gait_period - stepping
     
     first_steps = [0,3*stepping,2*stepping,stepping]
-    
-    
 
     current_step = first_steps[:]
     print current_step
@@ -205,6 +204,7 @@ def gait1(gait_period = 20, duty_factor = 0.25, lift=30, stride=50, speed=40, ga
         # get the active leg
         if active_leg != order[int(counter/stepping)]:
             active_leg = order[int(counter/stepping)]
+            print "Active Leg: {}".format(active_leg)
             
         # Calculate position
 
@@ -214,23 +214,18 @@ def gait1(gait_period = 20, duty_factor = 0.25, lift=30, stride=50, speed=40, ga
                 # shift
                 pos[leg][Z] = lift
             elif step == 1:
-                pos[leg][Z] = -lift/in_air
-                pos[leg][X] = 0.5*stride/in_air
+                pos[leg][Z] = -lift
+                pos[leg][X] = 0
             elif step < stepping:
-                if step <= (stepping/2):
-                    pos[leg][Z] -= lift*2.0/in_air
-                else:
-                    pos[leg][Z] += lift*2.0/in_air
-                pos[leg][X] += 0.5*stride/in_air
-            elif step == stepping:
-                pos[leg][Z] = 0
+                pos[leg][X] += stride/2/in_air
+                pos[leg][Z] += lift/in_air
             else:
                 pos[leg][X] -= stride/on_ground
                 if leg == opposite(active_leg):
                     if step % stepping == 0:
                         pos[leg][Z] = -lift
                     else:
-                        pos[leg][Z] += lift/in_air
+                        pos[leg][Z] += lift/(stepping-1)
                 else:
                     pos[leg][Z] = 0
 
@@ -316,9 +311,9 @@ def main():
     #walk_demo(steps=4, lift=30, turn=50)
     #trot(steps=40, speed=20, lift=40, stride=50)
 
-    gait1(gait_period = 20, speed=20, stride=50, lift=30, gait = Gaits.WALK, heading = Headings.NORTH, testing=True)
-    print "-----------------------------------"
-    gait2(speed=20, stride=50, lift=30, gait = Gaits.WALK, heading = Headings.NORTH, testing = True)
+    #gait1(gait_period = 40, speed=50, stride=100, lift=35, gait = Gaits.WALK, heading = Headings.NORTH, testing=False)
+    #print "-----------------------------------"
+    gait2(speed=40, stride=50, lift=30, gait = Gaits.WALK, heading = Headings.NORTH, testing = False)
     #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.EAST)
     #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.SOUTH)
     #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.WEST)
