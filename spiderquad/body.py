@@ -43,7 +43,7 @@ class Body:
 		while(not self.targets_reached()):
 			for leg in self.legs:
 				leg.seek_targets()
-				delay(15)
+			delay(5)
 
 
 

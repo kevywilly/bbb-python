@@ -29,7 +29,7 @@ DEFAULT_SPEED = 40
 COXA_MASK = np.array(((1,1,1),(-1,1,1),(1,1,1),(-1,1,1)))
 
 P0 = np.zeros((4,3))
-POFFSETS = np.array(((0,0,-5),(0,0,5),(0,0,5),(0,0,-5)))
+POFFSETS = np.array(((0,0,0),(0,0,0),(0,0,0),(0,0,0)))
 
 Headings = enum(NORTH=1,SOUTH=2,EAST=3,WEST=4)
 Gaits = enum(WALK="walk",TROT="trot")
@@ -180,7 +180,7 @@ def gait(gait_period = 20, duty_factor = 0.25, lift=30, stride=50, speed=40, gai
             print(pos[2])
             
             
-def gait1(gait_period = 20, duty_factor = 0.25, lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing=False):
+def gait1(gait_period = 20, gait_cycle = 6, lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing=False):
 
     X = 0
     Z = 2
@@ -189,7 +189,7 @@ def gait1(gait_period = 20, duty_factor = 0.25, lift=30, stride=50, speed=40, ga
     mask = HeadingsMap[heading]["mask"]
     order = HeadingsMap[heading][gait]
 
-    stepping = int(duty_factor*gait_period)
+    stepping = gait_cycle
     in_air = stepping - 2
     on_ground = gait_period - stepping
     
@@ -213,12 +213,12 @@ def gait1(gait_period = 20, duty_factor = 0.25, lift=30, stride=50, speed=40, ga
             if step == 0:
                 # shift
                 pos[leg][Z] = lift
-            elif step == 1:
-                pos[leg][Z] = -lift
-                pos[leg][X] = 0
+            elif step <= in_air/2:
+                pos[leg][Z] = -step*2*lift/in_air
+                pos[leg][X] = step*(stride/2)/in_air
             elif step < stepping:
-                pos[leg][X] += stride/2/in_air
-                pos[leg][Z] += lift/in_air
+                pos[leg][Z] = (step-1)*2*lift/in_air - 2*lift
+                pos[leg][X] = step*(stride/2)/in_air
             else:
                 pos[leg][X] -= stride/on_ground
                 if leg == opposite(active_leg):
@@ -246,7 +246,6 @@ def gait1(gait_period = 20, duty_factor = 0.25, lift=30, stride=50, speed=40, ga
             print ',\t'.join(map(str, pos.flatten().tolist()))
             
     
-
 def gait2(lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing = False):
     
     pos = P0+POFFSETS
@@ -273,7 +272,7 @@ def gait2(lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NO
         active_leg = order[int(step/in_air)]
         
             
-        for index, _ in enumerate(body.legs):
+        for index, leg in enumerate(body.legs):
             
             if step == steps[index]:        #1
                 pos[index][z] = lift  
@@ -298,8 +297,8 @@ def gait2(lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NO
         if not testing :
             body.set_position(pos*mask, speed = speed, go = True)
         else:
-            print ',\t'.join(map(str, pos.flatten().tolist()))               
-
+            ##a1,a2,a3,b1,b2,b3,c1,c2,c3,d1,d2,d3 = 
+            print ',\t'.join(map(str, pos.flatten().tolist()))
 
 def main():
     
@@ -311,9 +310,10 @@ def main():
     #walk_demo(steps=4, lift=30, turn=50)
     #trot(steps=40, speed=20, lift=40, stride=50)
 
-    #gait1(gait_period = 40, speed=50, stride=100, lift=35, gait = Gaits.WALK, heading = Headings.NORTH, testing=False)
+    for _ in range(0,2):
+        #gait1(gait_period = 24, gait_cycle = 6, speed=20, stride=50, lift=35, gait = Gaits.WALK, heading = Headings.NORTH, testing=False)
     #print "-----------------------------------"
-    gait2(speed=40, stride=50, lift=30, gait = Gaits.WALK, heading = Headings.NORTH, testing = False)
+        gait2(speed=20, stride=80, lift=40, gait = Gaits.WALK, heading = Headings.SOUTH, testing = False)
     #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.EAST)
     #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.SOUTH)
     #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.WEST)
