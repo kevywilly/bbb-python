@@ -249,7 +249,7 @@ def main():
     #walk_demo(steps=4, lift=30, turn=50)
     #trot(steps=40, speed=20, lift=40, stride=50)
 
-    gait1(speed=20, stride=50, lift=30, gait = Gaits.WALK, heading = Headings.NORTH)
+    gait1(gait_period = 40, speed=20, stride=50, lift=30, gait = Gaits.WALK, heading = Headings.NORTH)
     print "-----------------------------------"
     gait2(speed=20, stride=50, lift=30, gait = Gaits.WALK, heading = Headings.NORTH)
     #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.EAST)
