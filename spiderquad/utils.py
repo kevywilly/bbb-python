@@ -15,3 +15,9 @@ def opposite(index, count=4):
 		return index-2
 	else:
 		return index+2
+
+def ifNone(a,b):
+	if a == None:
+		return b
+
+	return a
