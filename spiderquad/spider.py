@@ -299,6 +299,79 @@ def gait2(lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NO
         else:
             ##a1,a2,a3,b1,b2,b3,c1,c2,c3,d1,d2,d3 = 
             print ',\t'.join(map(str, pos.flatten().tolist()))
+            
+def crawl(lift=35, stride=100, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing = False):
+    
+    pos = P0
+    
+    X=0
+    Y=1
+    Z=2
+    
+    mask = HeadingsMap[heading]["mask"]
+    order = HeadingsMap[heading][gait]
+    
+    support_cycles = 10.0
+
+    side1 = order[:2]
+    side2 = order[2:]
+    
+    for stepping_leg in order:
+        if stepping_leg in side1:
+            stepping_side = side1
+        else:
+            stepping_side = side2
+            
+        for step in range(0,4):
+            for leg in order:
+                if step == 0: 
+                   
+                    if leg == stepping_leg:
+                        pos[leg][Z] = lift/2
+                    elif leg == opposite(stepping_leg):
+                        pos[leg][Z] = -lift/2
+                    else:
+                        pos[leg][X] -= stride/support_cycles
+
+                elif step == 1: 
+                   
+                    if leg == stepping_leg:
+                        pos[leg][Z] = lift
+                    elif leg == opposite(stepping_leg):
+                        pos[leg][Z] = -lift
+                    else:
+                        pos[leg][X] -= stride/support_cycles  
+                        
+                elif step == 2: 
+                   
+                    if leg == stepping_leg:
+                        pos[leg][Z] = -lift/2
+                        pos[leg][X] = stride/2
+                    elif leg == opposite(stepping_leg):
+                        pos[leg][Z] = -lift/2
+                    
+                    if leg != stepping_leg:
+                        pos[leg][X] -= stride/support_cycles  
+                        
+                
+                elif step == 3: 
+                   
+                    if leg == stepping_leg:
+                        pos[leg][Z] = 0
+                    elif leg == opposite(stepping_leg):
+                        pos[leg][Z] = 0
+
+                    if leg != stepping_leg:
+                        pos[leg][X] -= stride/support_cycles   
+    
+                        
+            if not testing :
+                body.set_position(pos*mask, speed = speed, go = True)
+            else:
+                ##a1,a2,a3,b1,b2,b3,c1,c2,c3,d1,d2,d3 = 
+                print ',\t'.join(map(str, pos.flatten().tolist()))
+        
+        
 
 def main():
     
@@ -313,7 +386,8 @@ def main():
     for _ in range(0,2):
         #gait1(gait_period = 24, gait_cycle = 6, speed=20, stride=50, lift=35, gait = Gaits.WALK, heading = Headings.NORTH, testing=False)
     #print "-----------------------------------"
-        gait2(speed=20, stride=80, lift=40, gait = Gaits.WALK, heading = Headings.SOUTH, testing = False)
+        crawl()
+        #gait2(speed=20, stride=80, lift=40, gait = Gaits.WALK, heading = Headings.SOUTH, testing = False)
     #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.EAST)
     #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.SOUTH)
     #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.WEST)
