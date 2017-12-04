@@ -19,7 +19,9 @@ git clone https://github.com/adafruit/Adafruit_Python_PCA9685.git
 cd Adafruit_Python_PCA9685
 sudo python setup.py install
 
-# install beaglebone fix for gpio i2c
+# install beaglebone fix for gpio i2c which uses I2C1 by default
+# However bbb makes I2C2 available by default on pins p19 and p20 on header 9
+
 git clone git@github.com:kevywilly/Adafruit_Python_GPIO.git
 cd Adafruit_Python_GPIO
 sudo python setup.py install
