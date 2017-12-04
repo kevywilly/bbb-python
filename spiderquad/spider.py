@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+import socket
+import sys
+
 from utils import enum, delay, opposite
 from body import Body
 from leg import Leg
@@ -246,7 +249,7 @@ def gait1(gait_period = 20, gait_cycle = 6, lift=30, stride=50, speed=40, gait =
             print ',\t'.join(map(str, pos.flatten().tolist()))
             
     
-def gait2(lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing = False):
+def gait2(lift=30, stride=80, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing = False):
     
     pos = P0+POFFSETS
     
@@ -300,7 +303,7 @@ def gait2(lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NO
             ##a1,a2,a3,b1,b2,b3,c1,c2,c3,d1,d2,d3 = 
             print ',\t'.join(map(str, pos.flatten().tolist()))
             
-def crawl(lift=35, stride=100, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing = False):
+def crawl(lift=40, stride=100, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing = False):
     
     pos = P0
     
@@ -327,9 +330,9 @@ def crawl(lift=35, stride=100, speed=40, gait = Gaits.WALK, heading = Headings.N
                 if step == 0: 
                    
                     if leg == stepping_leg:
-                        pos[leg][Z] = lift/2
+                        pos[leg][Z] = lift*3/4
                     elif leg == opposite(stepping_leg):
-                        pos[leg][Z] = -lift/2
+                        pos[leg][Z] = -lift*3/4
                     else:
                         pos[leg][X] -= stride/support_cycles
 
@@ -345,7 +348,7 @@ def crawl(lift=35, stride=100, speed=40, gait = Gaits.WALK, heading = Headings.N
                 elif step == 2: 
                    
                     if leg == stepping_leg:
-                        pos[leg][Z] = -lift/2
+                        pos[leg][Z] = -lift
                         pos[leg][X] = stride/2
                     elif leg == opposite(stepping_leg):
                         pos[leg][Z] = -lift/2
@@ -372,26 +375,60 @@ def crawl(lift=35, stride=100, speed=40, gait = Gaits.WALK, heading = Headings.N
                 print ',\t'.join(map(str, pos.flatten().tolist()))
         
         
+def accept_command(cmd):
+    if cmd == "-1":
+        body.go_home
+    elif cmd == "0":
+        gait2(heading = Headings.NORTH)
+    elif cmd == "1":
+        gait2(heading = Headings.SOUTH)
+    elif cmd == "2":
+        gait2(heading = Headings.EAST)
+    elif cmd == "3":
+        gait2(heading = Headings.WEST)
+    else:
+        print >>sys.stderr, 'i do not understand command %s' % cmd
 
 def main():
     
     body.go_home()
     delay(1000)
-    #set_position(pos, speed = 100, go = True)
-    #twist_demo(60)
-    #up_down_demo()
-    #walk_demo(steps=4, lift=30, turn=50)
-    #trot(steps=40, speed=20, lift=40, stride=50)
 
-    for _ in range(0,2):
-        #gait1(gait_period = 24, gait_cycle = 6, speed=20, stride=50, lift=35, gait = Gaits.WALK, heading = Headings.NORTH, testing=False)
-    #print "-----------------------------------"
-        crawl()
-        #gait2(speed=20, stride=80, lift=40, gait = Gaits.WALK, heading = Headings.SOUTH, testing = False)
-    #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.EAST)
-    #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.SOUTH)
-    #gait2(speed=20, stride=100, gait = Gaits.WALK, heading = Headings.WEST)
-  
+    # Create a TCP/IP socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Bind the socket to the port
+    server_address = ('localhost', 8000)
+    print >>sys.stderr, 'starting up on %s port %s' % server_address
+    sock.bind(server_address)
+    
+    # Listen for incoming connections
+    sock.listen(1)
+    
+    while True:
+        # Wait for a connection
+        print >>sys.stderr, 'waiting for a connection'
+        connection, client_address = sock.accept()
+        
+        
+        try:
+            print >>sys.stderr, 'connection from', client_address
+    
+            # Receive the data in small chunks and retransmit it
+            while True:
+                data = connection.recv(16)
+                print >>sys.stderr, 'received "%s"' % data
+                if data:
+                    print >>sys.stderr, 'sending data back to the client'
+                    #connection.sendall(data)
+                    accept_command(data)
+                else:
+                    print >>sys.stderr, 'no more data from', client_address
+                    break
+                
+        finally:
+            # Clean up the connection
+            connection.close()
 
 if __name__ == "__main__": main()
 
