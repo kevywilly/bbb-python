@@ -303,6 +303,8 @@ def gait2(lift=30, stride=80, speed=40, gait = Gaits.WALK, heading = Headings.NO
             ##a1,a2,a3,b1,b2,b3,c1,c2,c3,d1,d2,d3 = 
             print ',\t'.join(map(str, pos.flatten().tolist()))
             
+    body.set_position(P0+POFFSETS, speed = speed, go = True)
+            
 def crawl(lift=40, stride=100, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing = False):
     
     pos = P0
@@ -377,7 +379,7 @@ def crawl(lift=40, stride=100, speed=40, gait = Gaits.WALK, heading = Headings.N
         
 def accept_command(cmd):
     if cmd == "-1":
-        body.go_home
+        body.set_position(P0+POFFSETS, speed = 80, go = True)
     elif cmd == "0":
         gait2(heading = Headings.NORTH)
     elif cmd == "1":
