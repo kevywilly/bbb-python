@@ -24,6 +24,9 @@ git clone git@github.com:kevywilly/Adafruit_Python_GPIO.git
 cd Adafruit_Python_GPIO
 sudo python setup.py install
 
+# install pip
+pip install numpy scypy
+
 # download bbb-python 
 cd /var/lib/cloud9/
 git clone git@github.com:kevywilly/bbb-python.git
@@ -31,4 +34,6 @@ git clone git@github.com:kevywilly/bbb-python.git
 # give cloud9 access to folder
 chown -R root:cloud9ide bbb-python
 chmod 775 -R bbb-python
+
+
 ```
