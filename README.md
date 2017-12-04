@@ -37,5 +37,9 @@ git clone git@github.com:kevywilly/bbb-python.git
 chown -R root:cloud9ide bbb-python
 chmod 775 -R bbb-python
 
+# install cape overlays
+git clone https://github.com/beagleboard/bb.org-overlays.git
+cd bb.org-overlays
+./install.sh
 
 ```
