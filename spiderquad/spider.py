@@ -28,21 +28,20 @@ MAX_PULSE_B = 650
 
 DEFAULT_SPEED = 40
 
-
+POFFSETS = ((0,0,0),(0,0,0),(0,0,0),(0,0,0))
 COXA_MASK = np.array(((1,1,1),(-1,1,1),(1,1,1),(-1,1,1)))
 
-P0 = np.zeros((4,3))
-POFFSETS = np.array(((0,0,0),(0,0,0),(0,0,0),(0,0,0)))
+NORTH = 0
+SOUTH = 1
+EAST = 2
+WEST = 3
 
-Headings = enum(NORTH=1,SOUTH=2,EAST=3,WEST=4)
-Gaits = enum(WALK="walk",TROT="trot")
 
-
-HeadingsMap = { 
-    1 : { "walk": [2,1,3,0], "trot": [2,0,3,1], "mask": (1,1,1)},  #North
-    2 : { "walk": [0,3,1,2], "trot": [0,2,1,3], "mask":  (-1,1,1)}, #South
-    3 : { "walk": [1,0,2,3], "trot": [1,3,2,0], "mask": ((-1,1,1),(1,1,1),(-1,1,1),(1,1,1))}, #East
-    4 : { "walk": [3,2,0,1], "trot": [3,1,0,2], "mask": ((1,1,1),(-1,1,1),(1,1,1),(-1,1,1))}, #West
+Heading = { 
+    NORTH : { "order": [2,1,3,0], "mask": (1,1,1)},  #North
+    SOUTH : { "order": [0,3,1,2], "mask":  (-1,1,1)}, #South
+    EAST : { "order": [1,0,2,3], "mask": ((-1,1,1),(1,1,1),(-1,1,1),(1,1,1))}, #East
+    WEST : { "order": [3,2,0,1], "mask": ((1,1,1),(-1,1,1),(1,1,1),(-1,1,1))}, #West
 }
 
 
@@ -78,324 +77,67 @@ rhLeg = Leg(rhCoxa, rhFemur, rhTibia)
 
 # Put legs into an array
 body = Body(rfLeg,lfLeg,lhLeg,rhLeg)
+body.set_offsets(POFFSETS)
 
 
 
 
 ############################ Methods ######################
 
+
 def up_down_demo():
-    pos = np.zeros((4,3))
-    delay(200)
-    body.set_position(pos + (0,0,-20), go=True)
-    delay(200)
-    body.set_position(pos + (0,0,20), go=True)
-    delay(200)
-    body.set_position(pos, go=True)
-    delay(200)
+    body.send_to_home_position(speed = 10)
+    for mm in [20,-20, 30,-30, 0]:
+        body.set_z(mm, 5, True)
+        delay(500)
+        
+def twist_demo():
+    body.send_to_home_position(speed = 10)
     
-def twist_demo(distance):
-    pos = np.zeros((4,3))
-    
-    mask = np.array(((1,1,1),(-1,1,1),(-1,1,1),(1,1,1)))
-    
-    
-    for i in dir:
-        body.set_position((pos + (distance*i,0,0))*mask, go=True, speed=10)
+    for x in range(1,5):
+        body.set_x(20*x, 5, True)
+        delay(500)
+        body.set_x(-20*x,5, True)
+        delay(500)
+        
+        body.set_x(0,5,True)
         delay(500)
     
-    body.set_position(pos, go=True)
 
-def walk_demo(steps = 2, lift=30, turn = 50, speed = 40):
-    for _ in range(0,steps):
-        gait1(lift = lift, turn = turn, speed = speed)
-        delay(50)
+def loop_walk(times, heading):
+    for i in range(0,times):
+        body.walk(lift = 40, heading = heading, speed = 50)
     
+def accept_command(command):
     
-    
-def mirror(ar):
-    return np.array((ar[1],ar[0],ar[3],ar[2]))
-
-def gait(gait_period = 20, duty_factor = 0.25, lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing=False):
-
-    X = 0
-    Z = 2
-
-    pos = P0+POFFSETS
-    mask = HeadingsMap[heading]["mask"]
-    order = HeadingsMap[heading][gait]
-
-    stepping = int(duty_factor*gait_period)
-    on_ground = gait_period - stepping
-    
-    first_steps = [0,0,0,0]
-    
-    for i in range(0,4):
-        first_steps[order[i]] = i*stepping
-
-    current_step = first_steps[:]
-    print current_step
-
-    active_leg = None
-    for counter in range(0,gait_period):
-
-        # get the active leg
-        if active_leg != order[int(counter/stepping)]:
-            active_leg = order[int(counter/stepping)]
-            print(active_leg)
-            
-        # Calculate position
-
-        for leg in range(0,4):
-            step = current_step[leg]
-            if step <= stepping/2:
-                pos[leg][Z] -= 2*lift/stepping
-                pos[leg][X] += stride/2/stepping
-            elif step < stepping:
-                pos[leg][Z] += 2*lift/stepping
-                pos[leg][X] += 0.5*stride/stepping
-            elif step == stepping:
-                pos[leg][Z] = 0
-            else:
-                pos[leg][X] -= stride/on_ground
-                '''
-                if leg == opposite(active_leg):
-                    if step % stepping == 0:
-                        pos[leg][Z] = -lift
-                    else:
-                        pos[leg][Z] += lift/in_air
-                else:
-                    pos[leg][Z] = 0
-                '''
-
-
-        ## increment the current step
-        for i in range(0,4):
-            current_step[i] += 1
-            if current_step[i] >= gait_period:
-                current_step[i] = 0
-
-   
-        
-        if not testing :
-            body.set_position(pos*mask, speed = speed, go = True)
+    try:
+        if ":" in command:
+            cmd,data = command.split(":")
+            data = int(data)
         else:
-            print(pos[2])
+            cmd = command
+            data = 0
             
-            
-def gait1(gait_period = 20, gait_cycle = 6, lift=30, stride=50, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing=False):
-
-    X = 0
-    Z = 2
-
-    pos = P0+POFFSETS
-    mask = HeadingsMap[heading]["mask"]
-    order = HeadingsMap[heading][gait]
-
-    stepping = gait_cycle
-    in_air = stepping - 2
-    on_ground = gait_period - stepping
-    
-    first_steps = [0,3*stepping,2*stepping,stepping]
-
-    current_step = first_steps[:]
-    print current_step
-
-    active_leg = None
-    for counter in range(0,gait_period):
-
-        # get the active leg
-        if active_leg != order[int(counter/stepping)]:
-            active_leg = order[int(counter/stepping)]
-            print "Active Leg: {}".format(active_leg)
-            
-        # Calculate position
-
-        for idx, leg in enumerate(order):
-            step = current_step[idx]
-            if step == 0:
-                # shift
-                pos[leg][Z] = lift
-            elif step <= in_air/2:
-                pos[leg][Z] = -step*2*lift/in_air
-                pos[leg][X] = step*(stride/2)/in_air
-            elif step < stepping:
-                pos[leg][Z] = (step-1)*2*lift/in_air - 2*lift
-                pos[leg][X] = step*(stride/2)/in_air
-            else:
-                pos[leg][X] -= stride/on_ground
-                if leg == opposite(active_leg):
-                    if step % stepping == 0:
-                        pos[leg][Z] = -lift
-                    else:
-                        pos[leg][Z] += lift/(stepping-1)
-                else:
-                    pos[leg][Z] = 0
-
-
-
-        ## increment the current step
-        for i in range(0,4):
-            current_step[i] += 1
-            if current_step[i] >= gait_period:
-                current_step[i] = 0
-
-   
-        
-        if not testing :
-            body.set_position(pos*mask, speed = speed, go = True)
+        if cmd == "stop":
+            body.send_to_home_position(80)
+        elif cmd == "north":
+            loop_walk(data, Heading[NORTH])
+        elif cmd == "south":
+            loop_walk(data, Heading[SOUTH])
+        elif cmd == "east":
+            loop_walk(data, Heading[EAST])
+        elif cmd == "west":
+            loop_walk(data, Heading[WEST])
+        elif cmd == "turn":
+            body.turn(stride=data)
         else:
-            ##a1,a2,a3,b1,b2,b3,c1,c2,c3,d1,d2,d3 = 
-            print ',\t'.join(map(str, pos.flatten().tolist()))
-            
-    
-def gait2(lift=30, stride=80, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing = False):
-    
-    pos = P0+POFFSETS
-    
-    mask = HeadingsMap[heading]["mask"]
-    order = HeadingsMap[heading][gait]
-
-    num_steps = 20
-    
-    in_air = num_steps/4
-    
-    on_ground = num_steps - in_air
-    
-    steps = [0,0,0,0]
-    for i in range(0,4):
-        steps[order[i]] = 0+i*in_air
+            print >>sys.stderr, 'i do not understand command %s' % cmd
+    except Exception as e:
+        print e
         
-    print "steps: {}".format(steps)
-    
-    z = 2
-    x = 0
 
-    for step in range(0,num_steps):
-        active_leg = order[int(step/in_air)]
-        
-            
-        for index, leg in enumerate(body.legs):
-            
-            if step == steps[index]:        #1
-                pos[index][z] = lift  
-            elif step == steps[index]+1:    #2
-                pos[index][x] = 0
-                pos[index][z] = -lift
-            elif step == steps[index]+2:     #3
-                pos[index][x] = stride/2
-                pos[index][z] = -lift/2
-            elif step == steps[index]+3:     #4
-                pos[index][z] = 0
-            else:
-                pos[index][x] -= stride/on_ground
-                if abs(index - active_leg) == 2:
-                    if step % in_air == 0:
-                        pos[index][z] = -lift
-                    else:
-                        pos[index][z] += lift/in_air
-                else:
-                    pos[index][z] = 0
-                        
-        if not testing :
-            body.set_position(pos*mask, speed = speed, go = True)
-        else:
-            ##a1,a2,a3,b1,b2,b3,c1,c2,c3,d1,d2,d3 = 
-            print ',\t'.join(map(str, pos.flatten().tolist()))
-            
-    body.set_position(P0+POFFSETS, speed = speed, go = True)
-            
-def crawl(lift=40, stride=100, speed=40, gait = Gaits.WALK, heading = Headings.NORTH, testing = False):
-    
-    pos = P0
-    
-    X=0
-    Y=1
-    Z=2
-    
-    mask = HeadingsMap[heading]["mask"]
-    order = HeadingsMap[heading][gait]
-    
-    support_cycles = 10.0
 
-    side1 = order[:2]
-    side2 = order[2:]
-    
-    for stepping_leg in order:
-        if stepping_leg in side1:
-            stepping_side = side1
-        else:
-            stepping_side = side2
-            
-        for step in range(0,4):
-            for leg in order:
-                if step == 0: 
-                   
-                    if leg == stepping_leg:
-                        pos[leg][Z] = lift*3/4
-                    elif leg == opposite(stepping_leg):
-                        pos[leg][Z] = -lift*3/4
-                    else:
-                        pos[leg][X] -= stride/support_cycles
-
-                elif step == 1: 
-                   
-                    if leg == stepping_leg:
-                        pos[leg][Z] = lift
-                    elif leg == opposite(stepping_leg):
-                        pos[leg][Z] = -lift
-                    else:
-                        pos[leg][X] -= stride/support_cycles  
-                        
-                elif step == 2: 
-                   
-                    if leg == stepping_leg:
-                        pos[leg][Z] = -lift
-                        pos[leg][X] = stride/2
-                    elif leg == opposite(stepping_leg):
-                        pos[leg][Z] = -lift/2
-                    
-                    if leg != stepping_leg:
-                        pos[leg][X] -= stride/support_cycles  
-                        
-                
-                elif step == 3: 
-                   
-                    if leg == stepping_leg:
-                        pos[leg][Z] = 0
-                    elif leg == opposite(stepping_leg):
-                        pos[leg][Z] = 0
-
-                    if leg != stepping_leg:
-                        pos[leg][X] -= stride/support_cycles   
-    
-                        
-            if not testing :
-                body.set_position(pos*mask, speed = speed, go = True)
-            else:
-                ##a1,a2,a3,b1,b2,b3,c1,c2,c3,d1,d2,d3 = 
-                print ',\t'.join(map(str, pos.flatten().tolist()))
-        
-        
-def accept_command(cmd):
-    if cmd == "-1":
-        body.set_position(P0+POFFSETS, speed = 80, go = True)
-    elif cmd == "0":
-        gait2(heading = Headings.NORTH)
-    elif cmd == "1":
-        gait2(heading = Headings.SOUTH)
-    elif cmd == "2":
-        gait2(heading = Headings.EAST)
-    elif cmd == "3":
-        gait2(heading = Headings.WEST)
-    else:
-        print >>sys.stderr, 'i do not understand command %s' % cmd
-
-def main():
-    
-    body.go_home()
-    delay(1000)
-
+def start_server():
     # Create a TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -427,10 +169,19 @@ def main():
                 else:
                     print >>sys.stderr, 'no more data from', client_address
                     break
-                
+        
         finally:
             # Clean up the connection
-            connection.close()
+            connection.close()    
+    
+    
+def main():
+    
+    body.go_home()
+    delay(1000)
+    start_server()
+    #data = 1
+    #body.turn(stride=50)
 
 if __name__ == "__main__": main()
 
