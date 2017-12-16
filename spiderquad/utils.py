@@ -6,7 +6,7 @@ def enum(**named_values):
 def delay(t):
     sleep(t/1000.0)
     
-def map(x, in_min, in_max, out_min, out_max):
+def scale(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 
@@ -21,3 +21,8 @@ def ifNone(a,b):
 		return b
 
 	return a
+	
+def get_or(dict,key,default=None):
+	if key in dict:
+		return dict[key]
+	return default

@@ -19,8 +19,15 @@ class Body:
 	def set_offsets(self, offsets):
 		self.P0 = np.zeros((4,3)) + offsets
 		
-	def set_relative_position(self, pos, speed = None, go = False):
-		self.set_position(pos, speed, go)
+	'''
+		Sets position relative to P0
+		pos = new position
+		speed = speed at which to articulate joints
+		go = seek targets True / False
+		mask = apply multiplicative mask to final position
+	'''
+	def set_relative_position(self, pos, speed = None, go = False, mask = (1,1,1)):
+		self.set_position((pos+self.P0)*mask, speed, go)
 		
 	def set_position(self, pos, speed = None, go = False):
 		print "setting position:\n{}".format(pos)
@@ -36,6 +43,7 @@ class Body:
 		pass
 
 	def go_home(self):
+		self.set_position(self.P0)
 		for leg in self.legs:
 			leg.goto_targets()
 		pass
@@ -70,21 +78,21 @@ class Body:
 
 		return True
 		
-	def turn(self, lift = 30, stride = 60, speed = 10, testing = False):
+	def turn(self, lift = 20, stride = 50, speed = 20, testing = False):
 		
 		X=0
 		Y=1
 		Z=2
 		
-		pos = np.copy(self.P0)
-		mask = ((1,1,1),(-1,1,1),(-1,1,1),(1,1,1))
+		pos = np.zeros((4,3))
+		
+		coxa_mask = ((1,1,1),(-1,1,1),(-1,1,1),(1,1,1))
 		dirr = [1,-1,-1,1]
 		
 		order = [0,1,2,3]
 		
+		
 		for stepping_leg in order:
-			
-			opposite_leg = opposite(stepping_leg)
 			
 			for step in range(0,3):
 				
@@ -93,14 +101,14 @@ class Body:
 				for leg in order:
 					
 					if step == 0:
-						# lean
+						# lean away from stepping leg
 						if leg == stepping_leg:
 							pos[leg][Z] = lift
-						elif leg == opposite_leg:
+						elif leg == (stepping_leg ^ 2):
 							pos[leg][Z] = -lift
 						
 					elif step == 1:
-						# lift start step
+						# lift stepping leg
 						if leg == stepping_leg:
 							pos[leg][Z] = -lift
 							pos[leg][X] = stride/2
@@ -116,7 +124,11 @@ class Body:
 						pos[leg][Z] = 0
 						
 				
-				self.set_relative_position(pos*mask, speed = speed, go = True)		
+				if not testing:
+					self.set_relative_position(pos, speed = speed, go = True, mask = coxa_mask)
+				else:
+					print ',\t'.join(map(str, pos.flatten().tolist()))
+						
 				
 				
 			
@@ -124,9 +136,9 @@ class Body:
 		self.send_to_home_position(speed)
 		
 		
-	def walk(self, heading, lift=30, stride=80, speed=40, testing = False):
+	def walk(self, heading, lift=25, stride=80, speed=40, testing = False):
 	    
-	    pos = np.copy(self.P0)
+	    pos = np.zeros((4,3)) #np.copy(self.P0)
 	    
 	    mask = heading["mask"]
 	    order = heading["order"]
@@ -163,7 +175,7 @@ class Body:
 	                pos[index][z] = 0
 	            else:
 	                pos[index][x] -= stride/on_ground
-	                if abs(index - active_leg) == 2:
+	                if abs(index - active_leg) == 2: 
 	                    if step % in_air == 0:
 	                        pos[index][z] = -lift
 	                    else:
@@ -177,76 +189,5 @@ class Body:
 	            ##a1,a2,a3,b1,b2,b3,c1,c2,c3,d1,d2,d3 = 
 	            print ',\t'.join(map(str, pos.flatten().tolist()))
 	            
-	    self.send_to_home_position(speed)
+	    #self.send_to_home_position(speed)
 	            
-	def crawl(self, heading, lift=40, stride=100, speed=40, testing = False):
-	    
-	    pos = np.copy(self.P0)
-	    
-	    X=0
-	    Y=1
-	    Z=2
-	    
-	    mask = heading["mask"]
-	    order = heading["order"]
-	    
-	    support_cycles = 10.0
-	
-	    side1 = order[:2]
-	    side2 = order[2:]
-	    
-	    for stepping_leg in order:
-	        if stepping_leg in side1:
-	            stepping_side = side1
-	        else:
-	            stepping_side = side2
-	            
-	        for step in range(0,4):
-	            for leg in order:
-	                if step == 0: 
-	                   
-	                    if leg == stepping_leg:
-	                        pos[leg][Z] = lift*3/4
-	                    elif leg == opposite(stepping_leg):
-	                        pos[leg][Z] = -lift*3/4
-	                    else:
-	                        pos[leg][X] -= stride/support_cycles
-	
-	                elif step == 1: 
-	                   
-	                    if leg == stepping_leg:
-	                        pos[leg][Z] = lift
-	                    elif leg == opposite(stepping_leg):
-	                        pos[leg][Z] = -lift
-	                    else:
-	                        pos[leg][X] -= stride/support_cycles  
-	                        
-	                elif step == 2: 
-	                   
-	                    if leg == stepping_leg:
-	                        pos[leg][Z] = -lift
-	                        pos[leg][X] = stride/2
-	                    elif leg == opposite(stepping_leg):
-	                        pos[leg][Z] = -lift/2
-	                    
-	                    if leg != stepping_leg:
-	                        pos[leg][X] -= stride/support_cycles  
-	                        
-	                
-	                elif step == 3: 
-	                   
-	                    if leg == stepping_leg:
-	                        pos[leg][Z] = 0
-	                    elif leg == opposite(stepping_leg):
-	                        pos[leg][Z] = 0
-	
-	                    if leg != stepping_leg:
-	                        pos[leg][X] -= stride/support_cycles   
-	    
-	                        
-	            if not testing :
-	                self.set_relative_position(pos*mask, speed = speed, go = True)
-	            else:
-	                ##a1,a2,a3,b1,b2,b3,c1,c2,c3,d1,d2,d3 = 
-	                print ',\t'.join(map(str, pos.flatten().tolist()))
-  

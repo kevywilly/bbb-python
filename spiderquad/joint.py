@@ -54,7 +54,7 @@ class Joint:
             sign = -1.0
         
         # map 0-1 to 0 - abs(diff)
-        desired_step = map(speed, 0, 100, 0, abs(diff))*sign;
+        desired_step = scale(speed, 0, 100, 0, abs(diff))*sign;
         
         if (desired_step == 0) and (target_angle <> self.current):
         	step = 1*sign;
@@ -75,7 +75,7 @@ class Joint:
         
     # convert an angle to pulse for pwm
     def angle_to_pulse(self, angle):
-        return map(self.safe_angle(angle*self.direction + self.offset), self.minAngle, self.maxAngle, self.minPulse, self.maxPulse)
+        return scale(self.safe_angle(angle*self.direction + self.offset), self.minAngle, self.maxAngle, self.minPulse, self.maxPulse)
       
 	    
     # go directly to angle  
