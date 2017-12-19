@@ -13,6 +13,7 @@ class Body:
 		self.legs = (self.leg1,self.leg2,self.leg3,self.leg4)
 		self.default_speed = speed
 		self.P0 = np.zeros((4,3))
+		self.coxa_mask = ((1,1,1),(-1,1,1),(-1,1,1),(1,1,1))
 		
 		
 	''' Accepts np array (4,3)'''
@@ -78,6 +79,22 @@ class Body:
 
 		return True
 		
+			
+	def up_down(self, cm = 5, speed = 10, testing = False):
+		pos = np.zeros((4,3)) + (0,0,cm)
+		if not testing:
+			self.set_relative_position(pos, speed = speed, go = True)
+		else:
+			print ',\t'.join(map(str, pos.flatten().tolist()))
+			
+	def twist(self, cm = 20, speed = 10, testing = False):
+		pos = np.zeros((4,3)) + (cm,0,0)
+		if not testing:
+			self.set_relative_position(pos, speed = speed, go = True, mask = self.coxa_mask)
+		else:
+			print ',\t'.join(map(str, pos.flatten().tolist()))
+		
+		
 	def turn(self, lift = 20, stride = 50, speed = 20, testing = False):
 		
 		X=0
@@ -86,7 +103,6 @@ class Body:
 		
 		pos = np.zeros((4,3))
 		
-		coxa_mask = ((1,1,1),(-1,1,1),(-1,1,1),(1,1,1))
 		dirr = [1,-1,-1,1]
 		
 		order = [0,1,2,3]
@@ -125,7 +141,7 @@ class Body:
 						
 				
 				if not testing:
-					self.set_relative_position(pos, speed = speed, go = True, mask = coxa_mask)
+					self.set_relative_position(pos, speed = speed, go = True, mask = self.coxa_mask)
 				else:
 					print ',\t'.join(map(str, pos.flatten().tolist()))
 						

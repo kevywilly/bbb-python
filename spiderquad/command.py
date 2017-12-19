@@ -2,10 +2,10 @@ import json
 
 class Command:
     
-    def __init__(self, json_data_):
-        self.json_data = json_data_
+    def __init__(self, json_string):
+        self.json_data = json.loads('{}')
         try: 
-            #self.json_data = json.loads(json_string)
+            self.json_data = json.loads(json_string)
             self.cmd = self.json_data["cmd"]
         except:
             print("Could not read JSON")

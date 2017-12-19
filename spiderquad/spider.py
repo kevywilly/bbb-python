@@ -1,20 +1,17 @@
 #!/usr/bin/python
 
-import socket
+import SocketServer
+import signal
 import sys
-import os
+import threading
+
 from utils import enum, delay, opposite
 from body import Body
 from leg import Leg
 from joint import Joint
 from command import Command
 import numpy as np
-import struct
 import json
-from jsonsocket import Server
-
-
-
 
 try:
     import Adafruit_PCA9685
@@ -36,7 +33,7 @@ DEFAULT_SPEED = 30
 COXA_MASK = np.array(((1,1,1),(-1,1,1),(1,1,1),(-1,1,1)))
 TIBIA_OFFSET = -20
 
-POFFSETS = (0,0,-20)
+POFFSETS = (0,0,-10)
 
 
 NORTH = 0
@@ -60,31 +57,12 @@ fLen = 70
 tLen = 166
 
 # Create all Joints
-'''
-rfCoxa = Joint(pwm, 8,cLen, direction=1, minPulse=MIN_PULSE_B, maxPulse=MAX_PULSE_B, offset=-5)
-rfFemur = Joint(pwm, 9,fLen, direction=-1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A, offset = -10)
-rfTibia = Joint(pwm, 10,tLen, direction=-1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A, offset = 0)
-
-lfCoxa = Joint(pwm, 12,cLen, direction=-1, minPulse=MIN_PULSE_B, maxPulse=MAX_PULSE_B, offset = 0)
-lfFemur = Joint(pwm, 13,fLen, direction=1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A, offset = 10)
-lfTibia = Joint(pwm, 14,tLen, direction=1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A, offset = 0)
-
-lhCoxa = Joint(pwm, 0,cLen, direction=-1, minPulse=MIN_PULSE_B, maxPulse=MAX_PULSE_B, offset = 0)
-lhFemur = Joint(pwm, 1,fLen, direction=-1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A, offset = -10)
-lhTibia = Joint(pwm, 2,tLen, direction=-1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A, offset = -4)
-
-rhCoxa = Joint(pwm, 4,cLen, direction=1, minPulse=MIN_PULSE_B, maxPulse=MAX_PULSE_B, offset = 5)
-rhFemur = Joint(pwm, 5,fLen, direction=1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A, offset = 10)
-rhTibia = Joint(pwm, 6,tLen, direction=1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A, offset = -10)
-'''
-
 rfCoxa = Joint(pwm, 8,cLen, direction=1, minPulse=MIN_PULSE_B, maxPulse=MAX_PULSE_B)
 rfFemur = Joint(pwm, 9,fLen, direction=-1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A)
 rfTibia = Joint(pwm, 10,tLen, direction=-1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A)
 
 lfCoxa = Joint(pwm, 12,cLen, direction=-1, minPulse=MIN_PULSE_B, maxPulse=MAX_PULSE_B)
-lfFemur = Joint(pwm, 13,fLen, direction=
-1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A)
+lfFemur = Joint(pwm, 13,fLen, direction=1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A)
 lfTibia = Joint(pwm, 14,tLen, direction=1, minPulse=MIN_PULSE_A, maxPulse=MAX_PULSE_A)
 
 lhCoxa = Joint(pwm, 0,cLen, direction=-1, minPulse=MIN_PULSE_B, maxPulse=MAX_PULSE_B)
@@ -107,6 +85,7 @@ rhLeg = Leg(rhCoxa, rhFemur, rhTibia)
 body = Body(rfLeg,lfLeg,lhLeg,rhLeg)
 
 
+server = None
 
 ############################ Methods ######################
 
@@ -130,6 +109,17 @@ def twist_demo():
         delay(500)
     
 
+def execute_twist(command):
+    cm = command.get_or("cm",0)
+    speed = command.get_or("speed",DEFAULT_SPEED)
+    body.twist(cm = cm, speed = speed)
+
+def execute_up_down(command):
+    cm = command.get_or("cm",0)
+    speed = command.get_or("speed",DEFAULT_SPEED)
+    body.up_down(cm = cm, speed = speed)
+        
+    
 def execute_turn(command):
     for i in range(0,command.get_or("steps",1)):
         body.turn(
@@ -163,58 +153,55 @@ def dispatch(payload):
         execute_walk(command)
     elif cmd == "turn":
         execute_turn(command)
+    elif cmd == "up_down":
+        execute_up_down(command)
+    elif cmd == "twist":
+        execute_twist(command)
     else:
         print >>sys.stderr, 'I don''t know what to do with {}'.format(command.cmd)
         
 
-'''    
-def start_server():
-    # Create a TCP/IP socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+class EchoRequestHandler(SocketServer.BaseRequestHandler):
 
-    # Bind the socket to the port
-    server_address = ('localhost', 8001)
-    print >>sys.stderr, 'starting up on %s port %s' % server_address
-    sock.bind(server_address)
-    
-    # Listen for incoming connections
-    sock.listen(1)
-    
-    while True:
-        # Wait for a connection
-        print >>sys.stderr, 'waiting for a connection'
-        connection, client_address = sock.accept()
-        try: 
-            print >>sys.stderr, 'connection from', client_address
-            data = connection.recv(1024).decode('utf-8')
-            if data:
-                sdata = str(data)
-                jdata = json.loads(sdata)
-            
-                connection.sendall("ok")
-                print >>sys.stderr, 'received "%s"' % data
-                dispatch(jdata)
-                data = None
-        finally:
-            # Clean up the connection
-            connection.close()    
-            sock.shutdown
-            sock.close()
- 
-'''
-
-def start_server():
-    server = Server("localhost",8002)
-    
-    while True:
-        print("hello")
-        server.accept()
-        data = server.recv()
-        server.send({'status': 'ok'})
+    def handle(self):
+        # Echo the back to the client
+        data = self.request.recv(1024)
+        print(data)
         dispatch(data)
-        print data
-            
+        self.request.send(data)
+        return
+
+       
+       
+def close_server():
+	global server
+	try:
+		server.shutdown(1)
+	except:
+		print "server not connected"
+	finally:
+		server.socket.close()
+
+def signal_handler(signal, frame):
+	print('You pressed Ctrl+C!')
+	close_server()
+	sys.exit(0)
+
+
+def start_server(port):
+    global server
     
+    server = SocketServer.TCPServer(('192.168.1.78',port), EchoRequestHandler)
+    signal.signal(signal.SIGINT, signal_handler)
+    t = threading.Thread(target=server.serve_forever)
+    t.setDaemon(True) # don't hang on exit
+    t.start()
+    print "started server ... waiting for connections"
+    
+    while 1:
+        pass
+
+
     
 def main():
     
@@ -222,13 +209,30 @@ def main():
     body.set_offsets(POFFSETS)
     body.go_home()
     delay(1000)
+    start_server(8000)
     
     '''
-    dispatch('{"cmd":"walk", "lift":30, "stride":80, "heading":0, "speed":20, "steps":1}')
-    dispatch('{"cmd":"turn", "lift":30, "stride":80, "speed":20, "steps":1}')
+    dispatch('{"cmd":"up_down", "cm":35, "speed":30}')
+    delay(1000)
+    dispatch('{"cmd":"up_down", "cm":0, "speed":30}')
+    delay(1000)
+    dispatch('{"cmd":"up_down", "cm":-35, "speed":30}')
+    delay(1000)
+    dispatch('{"cmd":"up_down", "cm":0, "speed":30}')
+    delay(1000)
+    
+    dispatch('{"cmd":"twist", "cm":60, "speed":30}')
+    delay(1000)
+    dispatch('{"cmd":"twist", "cm":0, "speed":30}')
+    delay(1000)
+    dispatch('{"cmd":"twist", "cm":-60, "speed":30}')
+    delay(1000)
+    dispatch('{"cmd":"twist", "cm":0, "speed":30}')
+    delay(1000)
     '''
     
-    start_server()
+    #dispatch('{"cmd":"turn", "lift":30, "stride":80, "speed":20, "steps":1}')
+    
    
 
 if __name__ == "__main__": main()
