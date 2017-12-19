@@ -105,7 +105,10 @@ class Body:
 		
 		dirr = [1,-1,-1,1]
 		
-		order = [0,1,2,3]
+		if stride >= 0:
+			order = [0,1,2,3]
+		else:
+			order = [0,3,2,1]
 		
 		
 		for stepping_leg in order:
@@ -180,7 +183,7 @@ class Body:
 	        for index, leg in enumerate(self.legs):
 	            
 	            if step == steps[index]:        #1
-	                pos[index][z] = lift  
+	                pos[index][z] = lift/2  
 	            elif step == steps[index]+1:    #2
 	                pos[index][x] = 0
 	                pos[index][z] = -lift
@@ -193,9 +196,9 @@ class Body:
 	                pos[index][x] -= stride/on_ground
 	                if abs(index - active_leg) == 2: 
 	                    if step % in_air == 0:
-	                        pos[index][z] = -lift
+	                        pos[index][z] = -lift/2
 	                    else:
-	                        pos[index][z] += lift/in_air
+	                        pos[index][z] += lift/2/in_air
 	                else:
 	                    pos[index][z] = 0
 	                        

@@ -33,7 +33,7 @@ DEFAULT_SPEED = 30
 COXA_MASK = np.array(((1,1,1),(-1,1,1),(1,1,1),(-1,1,1)))
 TIBIA_OFFSET = -20
 
-POFFSETS = (0,0,-10)
+POFFSETS = (0,-20,-20)
 
 
 NORTH = 0
