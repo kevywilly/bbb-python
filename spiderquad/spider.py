@@ -33,7 +33,7 @@ DEFAULT_SPEED = 30
 COXA_MASK = np.array(((1,1,1),(-1,1,1),(1,1,1),(-1,1,1)))
 TIBIA_OFFSET = -20
 
-POFFSETS = (0,-20,-20)
+POFFSETS = (0,0,-10)
 
 
 NORTH = 0
@@ -209,7 +209,9 @@ def main():
     body.set_offsets(POFFSETS)
     body.go_home()
     delay(1000)
-    start_server(8000)
+    #start_server(8000)
+    
+    dispatch('{"cmd":"walk", "lift":30, "speed":20, "stride":80, "heading": 0}')
     
     '''
     dispatch('{"cmd":"up_down", "cm":35, "speed":30}')
