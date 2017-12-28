@@ -228,7 +228,7 @@ def main():
     #start_server(8000)
     
     
-    dispatch('{"cmd":"amble", "amplitude":20, "speed":10, "heading": 0}')
+    dispatch('{"cmd":"amble", "amplitude":30, "speed":10, "heading": 0}')
     
     #delay(500)
    
