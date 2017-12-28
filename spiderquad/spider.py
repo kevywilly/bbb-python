@@ -225,7 +225,7 @@ def main():
     body.set_offsets(POFFSETS)
     body.go_home()
     delay(1000)
-    #start_server(8000)
+    start_server(8000)
     
     
     #dispatch('{"cmd":"amble", "amplitude":30, "speed":10, "heading": 0}')
