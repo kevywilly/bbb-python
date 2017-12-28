@@ -41,6 +41,7 @@ SOUTH = 1
 EAST = 2
 WEST = 3
 
+mode = "none"
 
 Heading = { 
     NORTH : { "order": [2,1,3,0], "mask": (1,1,1)},  #North
@@ -131,6 +132,12 @@ def execute_turn(command):
         
 def execute_walk(command):
     
+    global mode
+    if mode != "walk":
+        body.go_home
+        body.set_position(body.P0, go = True)
+        mode = "walk"
+        
     for i in range(0,command.get_or("steps",1)):
         body.walk(
             amplitude = command.get_or("amplitude",30), 
@@ -140,6 +147,12 @@ def execute_walk(command):
         )
 
 def execute_amble(command):
+    global mode
+    
+    if mode != "amble":
+        body.go_home
+        body.set_position(body.P0+(0,0,-10), go = True)
+        mode = "amble"
     
     for i in range(0,command.get_or("steps",1)):
         body.amble(
@@ -225,10 +238,10 @@ def main():
     body.set_offsets(POFFSETS)
     body.go_home()
     delay(1000)
-    start_server(8000)
+    #start_server(8000)
     
     
-    #dispatch('{"cmd":"amble", "amplitude":30, "speed":10, "heading": 0}')
+    dispatch('{"cmd":"amble", "amplitude":30, "speed":10, "heading": 0}')
     
     #delay(500)
    

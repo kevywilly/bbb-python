@@ -17,7 +17,6 @@ class Body:
 		self.currentPos = np.zeros((4,3))
 		
 	def print_absolute(self):
-		print "Position/n"
 		print (self.currentPos - self.P0)
 		
 	def zeros(self):
@@ -316,9 +315,13 @@ class Body:
 
 	def amble(self, amplitude=30, speed = None, heading=0):
 		
-		f = amplitude
-		if f > 30 or f < 5:
-			f = 30
+		amp = amplitude
+	
+		
+		if amp > 30 or amp < 5:
+			amp = 30
+		
+		
 			
 		order = [0,1]
 		d = 50
@@ -331,40 +334,45 @@ class Body:
 			order = [1,2]
 			
 		for leg in order:
-		    a = leg
-		    b = a ^ 2
-		  
-			# shift away from stepping leg
-		    self.shift(a,-f, speed = speed, go=True)
-		    delay(d)
-		    
-		    # lift stepping leg and reach out
-		    self.lift(a,2*f, speed = speed)
-		    self.reach(a,2*f, speed = speed, go=True)  
-		    delay(d)
-		    
-		    # lower stepping leg
-		    # pull in 
-		    # reach rear leg
-		    self.lift(a,-2*f, speed = speed)
-		    self.lift(b,-f, speed = speed) # put a bit more weight on pushing leg
-		    self.reach(a,-2*f, speed = speed)
-		    self.reach(b,2*f, speed = speed)
-		    self.shift(a,f, speed = speed, go=True)
-		    delay(d)
-		    
-		    # lean toward first stepping leg
-		    self.lean(a,f, speed = speed, go=True)
-		    delay(d)
-		    
-		    # lift second stepping leg and reach
-		    self.lift(b,2*f, speed = speed, go=True)
-		    self.reach(b,-2*f, speed = speed, go=True)
-		    delay(d)
-		    
-		    # both legs down
-		    self.lift(a,-f, speed = speed)
-		    self.lift(b,-0, speed = speed, go=True)
+			print ('=======================')
+			a = leg
+			b = a ^ 2
+			
+			
+			# step 1
+			self.shift(a, -amp, speed = speed, go=True)  #shift away from a
+			delay(d)
+			
+			# step 2
+			self.lift(a,amp*2, speed = speed) # lift a
+			self.reach(a,amp*2, speed = speed, go=True)   # reach a
+			delay(d)
+			
+			# lower stepping leg
+			# pull in 
+			# reach rear leg
+			# unshift
+			self.shift(a, amp, speed = speed)  # unshift away from a
+			self.lift(a,-amp*2, speed = speed) # unlift a
+			self.reach(a,-amp*2, speed = speed) # unreach a
+			
+			self.lift(b,-amp, speed = speed) # push off b
+			self.reach(b,amp*2, speed = speed, go = True) # reach b
+			
+			delay(d)
+			
+			# lean toward first stepping leg
+			self.lean(a,amp, speed = speed, go=True) # lean toward a
+			delay(d)
+			
+			# lift second stepping leg and reach
+			self.lift(b,amp*2, speed = speed, go=True) # lift b
+			self.reach(b,-amp*2, speed = speed, go=True) # unreach b
+			delay(d)
+			
+			# both legs down
+			self.lift(a,-amp, speed = speed, go = True) # unlift a
+			
 		
 		
 	            
