@@ -10,11 +10,15 @@ def scale(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 
-def opposite(index, count=4):
-	if index >= (count/2):
-		return index-2
-	else:
-		return index+2
+def opposite(index):
+	return index ^ 2
+	
+def adjacent(index):
+	l1 = index + 1
+	if l1 > 3:
+		l1 = 0
+	
+	return l1, opposite(l1)
 
 def ifNone(a,b):
 	if a == None:

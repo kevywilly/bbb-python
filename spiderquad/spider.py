@@ -33,7 +33,7 @@ DEFAULT_SPEED = 30
 COXA_MASK = np.array(((1,1,1),(-1,1,1),(1,1,1),(-1,1,1)))
 TIBIA_OFFSET = -20
 
-POFFSETS = (0,0,-10)
+POFFSETS = (0,-10,-25)
 
 
 NORTH = 0
@@ -86,6 +86,7 @@ body = Body(rfLeg,lfLeg,lhLeg,rhLeg)
 
 
 server = None
+resting = False
 
 ############################ Methods ######################
 
@@ -123,7 +124,7 @@ def execute_up_down(command):
 def execute_turn(command):
     for i in range(0,command.get_or("steps",1)):
         body.turn(
-            lift = command.get_or("lift",30), 
+            amplitude = command.get_or("amplitude",30), 
             stride = command.get_or("stride",80), 
             speed = command.get_or("speed", DEFAULT_SPEED),
         )
@@ -132,10 +133,19 @@ def execute_walk(command):
     
     for i in range(0,command.get_or("steps",1)):
         body.walk(
-            lift = command.get_or("lift",30), 
+            amplitude = command.get_or("amplitude",30), 
             stride = command.get_or("stride",80), 
             speed = command.get_or("speed", DEFAULT_SPEED),
             heading = Heading[command.get_or("heading",0)],
+        )
+
+def execute_amble(command):
+    
+    for i in range(0,command.get_or("steps",1)):
+        body.amble(
+            amplitude = command.get_or("amplitude",30), 
+            speed = command.get_or("speed", DEFAULT_SPEED),
+            heading = command.get_or("heading",0)
         )
     
     
@@ -147,8 +157,15 @@ def dispatch(payload):
     
     cmd = command.cmd
     
-    if cmd == "stop":
+    if cmd != "rest":
+        body.wakeup()
+    
+    if cmd == "rest":
+        body.rest()
+    elif cmd == "stop":
         body.send_to_home_position(50)
+    elif cmd == "amble":
+        execute_amble(command)
     elif cmd == "walk":
         execute_walk(command)
     elif cmd == "turn":
@@ -202,7 +219,6 @@ def start_server(port):
         pass
 
 
-    
 def main():
     
     #print POFFSETS
@@ -211,8 +227,13 @@ def main():
     delay(1000)
     #start_server(8000)
     
-    dispatch('{"cmd":"walk", "lift":30, "speed":20, "stride":80, "heading": 0}')
     
+    dispatch('{"cmd":"amble", "amplitude":20, "speed":10, "heading": 0}')
+    
+    #delay(500)
+   
+    #dispatch('{"cmd":"walk", "amplitude":30, "speed":20, "stride":80, "heading": 0}')
+
     '''
     dispatch('{"cmd":"up_down", "cm":35, "speed":30}')
     delay(1000)

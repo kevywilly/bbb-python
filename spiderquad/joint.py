@@ -27,6 +27,7 @@ class Joint:
         self.direction = direction
         self.pwm = pwm
         self.home_angle = self.current
+        self.rest_pulse = (self.minPulse + self.maxPulse)/2
         
         
     def __str__(self):
@@ -87,6 +88,16 @@ class Joint:
     	   self.pwm.set_pwm(self.id, 0, pulse)
     	self.current = a
 	
+	    
+	# rest
+    def rest(self):
+        
+        if self.pwm != None:
+            self.pwm.set_pwm(self.id, self.rest_pulse, self.rest_pulse)
+	    
+	def wakeup(self):
+	    self.goto_target()
+	    
     # go directly to target angle
     def goto_target(self):
         self.goto_angle(self.target.angle)

@@ -23,6 +23,13 @@ class Leg:
         for joint in self.joints:
             joint.seek_target(False)
         
+    def rest(self):
+        for joint in self.joints:
+            joint.rest()
+            
+    def wakeup(self):
+        self.goto_targets()
+        
     def goto_targets(self):
         for joint in self.joints:
             joint.goto_target()
