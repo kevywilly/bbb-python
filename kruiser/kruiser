@@ -1,0 +1,3 @@
+#!/bin/bash
+cd /var/lib/cloud9/bbb-python/kruiser
+./kruiser.py
